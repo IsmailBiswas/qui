@@ -54,7 +54,7 @@ onUnmounted(() => window.removeEventListener('keydown', handleGlobalKeydown))
         v-if="isAnchored"
         class="absolute top-0 left-0 w-[30%] h-[30%] border-r border-b border-border z-0"
       >
-        <GraphView :root-node-id="store.activeNodeId" />
+        <GraphView :root-node-id="store.activeRootNodeId" />
       </div>
     </Transition>
 

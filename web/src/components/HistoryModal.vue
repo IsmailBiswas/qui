@@ -55,7 +55,7 @@ onUnmounted(() => window.removeEventListener('keydown', handleKeydown))
         <p class="text-[10px] text-muted-foreground uppercase tracking-wide">Graph Preview</p>
       </div>
       <div class="flex-1 min-h-0 relative">
-        <GraphView v-if="store.activeNode" :root-node-id="store.activeNodeId" />
+        <GraphView v-if="store.activeNode" :root-node-id="store.activeRootNodeId" />
         <div v-else class="h-full flex items-center justify-center">
           <p class="text-xs text-muted-foreground">Select a question to preview</p>
         </div>

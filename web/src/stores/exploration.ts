@@ -67,6 +67,19 @@ export const useExplorationStore = defineStore('exploration', () => {
 
   const allNodes = computed(() => Array.from(nodes.value.values()))
 
+  /** Walk up from activeNodeId to find the top-level root ancestor */
+  const activeRootNodeId = computed<string | null>(() => {
+    if (!activeNodeId.value) return null
+    let cur = nodes.value.get(activeNodeId.value)
+    if (!cur) return null
+    while (cur.parentId) {
+      const parent = nodes.value.get(cur.parentId)
+      if (!parent) break
+      cur = parent
+    }
+    return cur.id
+  })
+
   const selectedSubQuestion = computed(() => {
     if (!activeNodeId.value || !selectedSubQuestionId.value) return null
     const node = nodes.value.get(activeNodeId.value)
@@ -240,6 +253,7 @@ export const useExplorationStore = defineStore('exploration', () => {
     activeNode,
     rootNode,
     allNodes,
+    activeRootNodeId,
     selectedSubQuestion,
     showInput,
     hideInput,
