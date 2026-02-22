@@ -162,6 +162,20 @@ export const useExplorationStore = defineStore('exploration', () => {
     return addAnchorNode(sub.question, sub.answer, anchorId)
   }
 
+  /**
+   * Returns the ancestor chain from the root down to the given node (inclusive),
+   * as {question, answer} pairs for AI context.
+   */
+  function getAncestorChain(nodeId: string): { question: string; answer: string }[] {
+    const chain: AnchorNode[] = []
+    let cur = nodes.value.get(nodeId)
+    while (cur) {
+      chain.unshift(cur)
+      cur = cur.parentId ? nodes.value.get(cur.parentId) : undefined
+    }
+    return chain.map((n) => ({ question: n.question, answer: n.answer }))
+  }
+
   function selectNode(nodeId: string) {
     if (nodes.value.has(nodeId)) {
       activeNodeId.value = nodeId
@@ -263,6 +277,7 @@ export const useExplorationStore = defineStore('exploration', () => {
     promoteSubQuestion,
     selectNode,
     selectSubQuestion,
+    getAncestorChain,
     transitionToAnchored,
     showHistoryModal,
     startNewQuestion,

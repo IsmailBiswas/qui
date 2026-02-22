@@ -53,7 +53,8 @@ async function submit() {
       // Follow-up — treat as sub-question, auto-promote to child anchor
       const rootNode = store.nodes.get(rootAnchorId.value)
       if (!rootNode) return
-      const answer = await askSubQuestion(rootNode.answer, q)
+      const ancestors = store.getAncestorChain(rootNode.id)
+      const answer = await askSubQuestion(ancestors, q)
       store.addAnchorNode(q, answer, rootAnchorId.value)
       conversation.value.push({ question: q, answer, isRoot: false })
     }

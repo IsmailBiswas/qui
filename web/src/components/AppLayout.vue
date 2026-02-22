@@ -4,10 +4,13 @@ import ExplanationPanel from '@/components/ExplanationPanel.vue'
 import ThreadList from '@/components/ThreadList.vue'
 import MainModal from '@/components/MainModal.vue'
 import FloatingInput from '@/components/FloatingInput.vue'
+import SettingsModal from '@/components/SettingsModal.vue'
 import { useExplorationStore } from '@/stores/exploration'
+import { useSettingsStore } from '@/stores/settings'
 import { computed, onMounted, onUnmounted } from 'vue'
 
 const store = useExplorationStore()
+const settingsStore = useSettingsStore()
 const isAnchored = computed(() => store.viewMode === 'anchored')
 
 function handleGlobalKeydown(e: KeyboardEvent) {
@@ -25,6 +28,12 @@ function handleGlobalKeydown(e: KeyboardEvent) {
   if (e.key === 'H' && e.shiftKey && !e.ctrlKey && !e.metaKey) {
     e.preventDefault()
     store.showHistoryModal()
+  }
+
+  // Shift+, to open settings (e.code is layout-independent)
+  if (e.code === 'Comma' && e.shiftKey && !e.ctrlKey && !e.metaKey) {
+    e.preventDefault()
+    settingsStore.openSettings()
   }
 }
 
@@ -100,6 +109,9 @@ onUnmounted(() => window.removeEventListener('keydown', handleGlobalKeydown))
 
     <!-- Floating draggable input (Ctrl+I) -->
     <FloatingInput />
+
+    <!-- Settings modal -->
+    <SettingsModal />
   </div>
 </template>
 

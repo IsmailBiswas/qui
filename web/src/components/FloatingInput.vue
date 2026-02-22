@@ -105,7 +105,8 @@ async function submit() {
       store.addAnchorNode(q, answer)
     } else {
       const sub = store.addSubQuestion(store.activeNode.id, q)
-      const answer = await askSubQuestion(store.activeNode.answer, q)
+      const ancestors = store.getAncestorChain(store.activeNode.id)
+      const answer = await askSubQuestion(ancestors, q)
       store.updateSubQuestionAnswer(sub.anchorId, sub.id, answer)
     }
   } catch (err) {
