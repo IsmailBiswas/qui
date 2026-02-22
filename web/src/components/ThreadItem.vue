@@ -1,45 +1,41 @@
 <script setup lang="ts">
-import { ref } from 'vue'
 import { useExplorationStore } from '@/stores/exploration'
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
 import { Button } from '@/components/ui/button'
 import type { SubQuestion } from '@/types'
+import { computed } from 'vue'
 
 const props = defineProps<{
   subQuestion: SubQuestion
 }>()
 
 const store = useExplorationStore()
-const open = ref(false)
+const isSelected = computed(() => store.selectedSubQuestionId === props.subQuestion.id)
 
-function promote() {
+function select() {
+  store.selectSubQuestion(props.subQuestion.id)
+}
+
+function promote(e: Event) {
+  e.stopPropagation()
   store.promoteSubQuestion(props.subQuestion.anchorId, props.subQuestion.id)
 }
 </script>
 
 <template>
-  <Collapsible v-model:open="open" class="border-b border-border">
-    <CollapsibleTrigger class="w-full px-4 py-3 text-left hover:bg-muted/50 transition-colors">
-      <div class="flex items-start gap-2">
-        <span class="text-[10px] text-muted-foreground mt-0.5">{{ open ? '▾' : '▸' }}</span>
-        <span class="text-xs font-medium leading-snug">{{ subQuestion.question }}</span>
-      </div>
-    </CollapsibleTrigger>
-
-    <CollapsibleContent>
-      <div class="px-4 pb-3 pl-8">
-        <div v-if="subQuestion.loading" class="text-xs text-muted-foreground animate-pulse">
-          Thinking...
-        </div>
-        <div v-else>
-          <p class="text-xs leading-relaxed whitespace-pre-wrap text-muted-foreground">
-            {{ subQuestion.answer }}
-          </p>
-          <Button variant="outline" size="sm" class="mt-2 text-[10px] h-6" @click="promote">
-            Promote to Anchor
-          </Button>
-        </div>
-      </div>
-    </CollapsibleContent>
-  </Collapsible>
+  <div
+    class="border-b border-border px-4 py-3 cursor-pointer transition-colors"
+    :class="isSelected ? 'bg-muted' : 'hover:bg-muted/50'"
+    @click="select"
+  >
+    <div class="flex items-start justify-between gap-2">
+      <span class="text-xs font-medium leading-snug flex-1">{{ subQuestion.question }}</span>
+      <span v-if="subQuestion.loading" class="text-[10px] text-muted-foreground animate-pulse shrink-0">...</span>
+    </div>
+    <div v-if="!subQuestion.loading && subQuestion.answer" class="mt-1.5 flex items-center gap-2">
+      <p class="text-[10px] text-muted-foreground truncate flex-1">{{ subQuestion.answer.slice(0, 80) }}...</p>
+      <Button variant="outline" size="sm" class="text-[10px] h-5 px-1.5 shrink-0" @click="promote">
+        Promote
+      </Button>
+    </div>
+  </div>
 </template>

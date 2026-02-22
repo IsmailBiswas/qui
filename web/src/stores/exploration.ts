@@ -5,8 +5,11 @@ import type { AnchorNode, SubQuestion } from '@/types'
 export const useExplorationStore = defineStore('exploration', () => {
   const nodes = ref<Map<string, AnchorNode>>(new Map())
   const activeNodeId = ref<string | null>(null)
+  const selectedSubQuestionId = ref<string | null>(null)
   const inputVisible = ref(false)
   const inputMode = ref<'main' | 'sub'>('main')
+  /** 'modal' = big centered modal on homepage, 'anchored' = 3-column layout */
+  const viewMode = ref<'modal' | 'anchored'>('modal')
 
   const activeNode = computed(() => {
     if (!activeNodeId.value) return null
@@ -21,6 +24,17 @@ export const useExplorationStore = defineStore('exploration', () => {
   })
 
   const allNodes = computed(() => Array.from(nodes.value.values()))
+
+  const selectedSubQuestion = computed(() => {
+    if (!activeNodeId.value || !selectedSubQuestionId.value) return null
+    const node = nodes.value.get(activeNodeId.value)
+    if (!node) return null
+    return node.subQuestions.find((s) => s.id === selectedSubQuestionId.value) ?? null
+  })
+
+  function selectSubQuestion(subId: string | null) {
+    selectedSubQuestionId.value = subId
+  }
 
   function generateId(): string {
     return crypto.randomUUID()
@@ -70,6 +84,7 @@ export const useExplorationStore = defineStore('exploration', () => {
       loading: true,
     }
     node.subQuestions.push(sub)
+    selectedSubQuestionId.value = sub.id
     return sub
   }
 
@@ -95,24 +110,34 @@ export const useExplorationStore = defineStore('exploration', () => {
   function selectNode(nodeId: string) {
     if (nodes.value.has(nodeId)) {
       activeNodeId.value = nodeId
+      selectedSubQuestionId.value = null
     }
+  }
+
+  function transitionToAnchored() {
+    viewMode.value = 'anchored'
   }
 
   function reset() {
     nodes.value.clear()
     activeNodeId.value = null
+    selectedSubQuestionId.value = null
     inputVisible.value = false
     inputMode.value = 'main'
+    viewMode.value = 'modal'
   }
 
   return {
     nodes,
     activeNodeId,
+    selectedSubQuestionId,
     inputVisible,
     inputMode,
+    viewMode,
     activeNode,
     rootNode,
     allNodes,
+    selectedSubQuestion,
     showInput,
     hideInput,
     addAnchorNode,
@@ -120,6 +145,8 @@ export const useExplorationStore = defineStore('exploration', () => {
     updateSubQuestionAnswer,
     promoteSubQuestion,
     selectNode,
+    selectSubQuestion,
+    transitionToAnchored,
     reset,
   }
 })
