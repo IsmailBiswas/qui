@@ -1,0 +1,5 @@
+- Always create separate, reusable components instead of inlining UI into parent components.
+- One component per file.
+- Extract repeated UI patterns into their own components immediately — don't wait to refactor.
+- Never use emojis anywhere in the UI or code.
+- Always use compact/small size variants for buttons and other components (e.g. size="sm", size="icon").
