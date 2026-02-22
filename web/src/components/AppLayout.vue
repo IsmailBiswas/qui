@@ -5,10 +5,31 @@ import ThreadList from '@/components/ThreadList.vue'
 import MainModal from '@/components/MainModal.vue'
 import FloatingInput from '@/components/FloatingInput.vue'
 import { useExplorationStore } from '@/stores/exploration'
-import { computed } from 'vue'
+import { computed, onMounted, onUnmounted } from 'vue'
 
 const store = useExplorationStore()
 const isAnchored = computed(() => store.viewMode === 'anchored')
+
+function handleGlobalKeydown(e: KeyboardEvent) {
+  const tag = (document.activeElement as HTMLElement)?.tagName
+  const isEditable = tag === 'INPUT' || tag === 'TEXTAREA' || (document.activeElement as HTMLElement)?.isContentEditable
+  if (isEditable) return
+
+  // Shift+Space to start a fresh new question (keeps saved data)
+  if (e.key === ' ' && e.shiftKey && !e.ctrlKey && !e.metaKey) {
+    e.preventDefault()
+    store.startNewQuestion()
+  }
+
+  // Shift+H to show history modal
+  if (e.key === 'H' && e.shiftKey && !e.ctrlKey && !e.metaKey) {
+    e.preventDefault()
+    store.showHistoryModal()
+  }
+}
+
+onMounted(() => window.addEventListener('keydown', handleGlobalKeydown))
+onUnmounted(() => window.removeEventListener('keydown', handleGlobalKeydown))
 </script>
 
 <template>
@@ -33,7 +54,7 @@ const isAnchored = computed(() => store.viewMode === 'anchored')
         v-if="isAnchored"
         class="absolute top-0 left-0 w-[30%] h-[30%] border-r border-b border-border z-0"
       >
-        <GraphView />
+        <GraphView :root-node-id="store.activeNodeId" />
       </div>
     </Transition>
 

@@ -1,15 +1,57 @@
 import { defineStore } from 'pinia'
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import type { AnchorNode, SubQuestion } from '@/types'
 
+const STORAGE_KEY = 'stop-it-bro-exploration'
+const SESSION_VIEW_KEY = 'stop-it-bro-view-mode'
+
+interface PersistedState {
+  nodes: [string, AnchorNode][]
+  activeNodeId: string | null
+  selectedSubQuestionId: string | null
+  viewMode: 'modal' | 'anchored'
+}
+
+function loadFromStorage(): PersistedState | null {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY)
+    if (!raw) return null
+    return JSON.parse(raw) as PersistedState
+  } catch {
+    return null
+  }
+}
+
+function saveToStorage(state: PersistedState) {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state))
+  } catch {
+    // silently ignore quota errors
+  }
+}
+
 export const useExplorationStore = defineStore('exploration', () => {
-  const nodes = ref<Map<string, AnchorNode>>(new Map())
-  const activeNodeId = ref<string | null>(null)
-  const selectedSubQuestionId = ref<string | null>(null)
+  const saved = loadFromStorage()
+
+  const nodes = ref<Map<string, AnchorNode>>(
+    saved ? new Map(saved.nodes) : new Map()
+  )
+  const activeNodeId = ref<string | null>(saved?.activeNodeId ?? null)
+  const selectedSubQuestionId = ref<string | null>(saved?.selectedSubQuestionId ?? null)
   const inputVisible = ref(false)
   const inputMode = ref<'main' | 'sub'>('main')
   /** 'modal' = big centered modal on homepage, 'anchored' = 3-column layout */
-  const viewMode = ref<'modal' | 'anchored'>('modal')
+  // sessionStorage survives soft refresh but clears on hard refresh / new tab
+  const sessionView = sessionStorage.getItem(SESSION_VIEW_KEY) as 'modal' | 'anchored' | null
+  const viewMode = ref<'modal' | 'anchored'>(
+    sessionView === 'anchored' && saved?.activeNodeId ? 'anchored' : 'modal'
+  )
+  /** When true, MainModal shows the new-question input instead of history */
+  const showNewQuestionView = ref(false)
+  /** Tracks where the user was before pressing Shift+Space */
+  const previousViewMode = ref<'modal' | 'anchored' | null>(null)
+  const previousActiveNodeId = ref<string | null>(null)
+  const previousSelectedSubQuestionId = ref<string | null>(null)
 
   const activeNode = computed(() => {
     if (!activeNodeId.value) return null
@@ -116,6 +158,45 @@ export const useExplorationStore = defineStore('exploration', () => {
 
   function transitionToAnchored() {
     viewMode.value = 'anchored'
+    showNewQuestionView.value = false
+  }
+
+  /** Switch to modal view showing history (saved questions) */
+  function showHistoryModal() {
+    previousViewMode.value = viewMode.value
+    previousActiveNodeId.value = activeNodeId.value
+    previousSelectedSubQuestionId.value = selectedSubQuestionId.value
+    viewMode.value = 'modal'
+    showNewQuestionView.value = false
+  }
+
+  /** Go back to modal with fresh question input, keeping all saved data */
+  function startNewQuestion() {
+    previousViewMode.value = viewMode.value
+    previousActiveNodeId.value = activeNodeId.value
+    previousSelectedSubQuestionId.value = selectedSubQuestionId.value
+    viewMode.value = 'modal'
+    activeNodeId.value = null
+    selectedSubQuestionId.value = null
+    showNewQuestionView.value = true
+  }
+
+  /** Cancel the new-question view and go back to where the user was */
+  function cancelNewQuestion() {
+    showNewQuestionView.value = false
+    // Restore previous active node
+    if (previousActiveNodeId.value && nodes.value.has(previousActiveNodeId.value)) {
+      activeNodeId.value = previousActiveNodeId.value
+      selectedSubQuestionId.value = previousSelectedSubQuestionId.value
+    }
+    if (previousViewMode.value === 'anchored') {
+      viewMode.value = 'anchored'
+    } else {
+      viewMode.value = 'modal'
+    }
+    previousViewMode.value = null
+    previousActiveNodeId.value = null
+    previousSelectedSubQuestionId.value = null
   }
 
   function reset() {
@@ -125,7 +206,27 @@ export const useExplorationStore = defineStore('exploration', () => {
     inputVisible.value = false
     inputMode.value = 'main'
     viewMode.value = 'modal'
+    showNewQuestionView.value = false
+    previousViewMode.value = null
+    localStorage.removeItem(STORAGE_KEY)
+    sessionStorage.removeItem(SESSION_VIEW_KEY)
   }
+
+  // Persist relevant state to localStorage on every change
+  watch(
+    [nodes, activeNodeId, selectedSubQuestionId, viewMode],
+    () => {
+      saveToStorage({
+        nodes: Array.from(nodes.value.entries()),
+        activeNodeId: activeNodeId.value,
+        selectedSubQuestionId: selectedSubQuestionId.value,
+        viewMode: viewMode.value,
+      })
+      // Sync viewMode to sessionStorage for soft-refresh persistence
+      sessionStorage.setItem(SESSION_VIEW_KEY, viewMode.value)
+    },
+    { deep: true }
+  )
 
   return {
     nodes,
@@ -134,6 +235,8 @@ export const useExplorationStore = defineStore('exploration', () => {
     inputVisible,
     inputMode,
     viewMode,
+    showNewQuestionView,
+    previousViewMode,
     activeNode,
     rootNode,
     allNodes,
@@ -147,6 +250,9 @@ export const useExplorationStore = defineStore('exploration', () => {
     selectNode,
     selectSubQuestion,
     transitionToAnchored,
+    showHistoryModal,
+    startNewQuestion,
+    cancelNewQuestion,
     reset,
   }
 })

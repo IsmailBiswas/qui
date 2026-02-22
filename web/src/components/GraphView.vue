@@ -12,10 +12,32 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js'
 import { useExplorationStore } from '@/stores/exploration'
 import type { AnchorNode } from '@/types'
 
+const props = withDefaults(defineProps<{
+  /** When set, only show this node and its descendants */
+  rootNodeId?: string | null
+}>(), {
+  rootNodeId: null,
+})
+
 const store = useExplorationStore()
 const containerRef = ref<HTMLElement | null>(null)
 
-const nodes = computed(() => store.allNodes)
+const nodes = computed(() => {
+  const all = store.allNodes
+  if (!props.rootNodeId) return all
+  // Collect subtree rooted at rootNodeId
+  const subtree: AnchorNode[] = []
+  const queue = [props.rootNodeId]
+  while (queue.length > 0) {
+    const id = queue.shift()!
+    const node = all.find((n) => n.id === id)
+    if (node) {
+      subtree.push(node)
+      queue.push(...node.childIds)
+    }
+  }
+  return subtree
+})
 const activeId = computed(() => store.activeNodeId)
 
 // Three.js objects kept as shallow refs to avoid deep reactivity overhead

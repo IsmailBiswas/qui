@@ -36,9 +36,22 @@ function toggle() {
 }
 
 function handleGlobalKeydown(e: KeyboardEvent) {
-  if ((e.ctrlKey || e.metaKey) && e.key === 'i') {
-    e.preventDefault()
-    toggle()
+  // Space to open floating input (only when anchored, has active node, no input focused)
+  if (
+    e.key === ' ' &&
+    !e.shiftKey &&
+    !e.ctrlKey &&
+    !e.metaKey &&
+    store.viewMode === 'anchored' &&
+    store.activeNode &&
+    !visible.value
+  ) {
+    const tag = (document.activeElement as HTMLElement)?.tagName
+    const isEditable = tag === 'INPUT' || tag === 'TEXTAREA' || (document.activeElement as HTMLElement)?.isContentEditable
+    if (!isEditable) {
+      e.preventDefault()
+      toggle()
+    }
   }
   if (e.key === 'Escape' && visible.value) {
     visible.value = false
