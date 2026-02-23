@@ -9,7 +9,7 @@ const subQuestions = computed(() => store.activeNode?.subQuestions ?? [])
 </script>
 
 <template>
-  <div class="h-full flex flex-col">
+  <div class="h-full flex flex-col bg-card">
     <div class="px-4 py-3 border-b border-border shrink-0">
       <p class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Sub-Questions</p>
     </div>

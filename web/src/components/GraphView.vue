@@ -112,8 +112,26 @@ function makeTextSprite(text: string, isActive: boolean): THREE.Sprite {
   canvas.width = Math.max(256, Math.ceil(textWidth))
   canvas.height = Math.ceil(textHeight) + 10
 
+  // Solid background pill
+  const bgColor = isActive ? '#3b1f6e' : '#3f3f46'
+  ctx.fillStyle = bgColor
+  const r = 10
+  const w = canvas.width, h = canvas.height
+  ctx.beginPath()
+  ctx.moveTo(r, 0)
+  ctx.lineTo(w - r, 0)
+  ctx.quadraticCurveTo(w, 0, w, r)
+  ctx.lineTo(w, h - r)
+  ctx.quadraticCurveTo(w, h, w - r, h)
+  ctx.lineTo(r, h)
+  ctx.quadraticCurveTo(0, h, 0, h - r)
+  ctx.lineTo(0, r)
+  ctx.quadraticCurveTo(0, 0, r, 0)
+  ctx.closePath()
+  ctx.fill()
+
   ctx.font = `${fontSize}px sans-serif`
-  ctx.fillStyle = isActive ? 'rgba(255,255,255,0.95)' : 'rgba(180,180,180,0.85)'
+  ctx.fillStyle = isActive ? 'rgba(255,255,255,0.95)' : 'rgba(200,200,200,0.90)'
   ctx.textAlign = 'center'
   ctx.textBaseline = 'middle'
   ctx.fillText(display, canvas.width / 2, canvas.height / 2)
@@ -212,7 +230,7 @@ function initScene() {
 
   // Scene
   const s = new THREE.Scene()
-  s.background = new THREE.Color(0x18181b)
+  s.background = new THREE.Color(0x27272a)
   scene.value = s
 
   // Camera
@@ -266,8 +284,18 @@ function handleResize() {
 }
 
 onMounted(() => {
-  initScene()
+  // Use ResizeObserver so Three.js gets correct dimensions when flex layout finalizes
+  const ro = new ResizeObserver(() => {
+    if (!renderer.value) {
+      initScene()
+    } else {
+      handleResize()
+    }
+  })
+  if (containerRef.value) ro.observe(containerRef.value)
   window.addEventListener('resize', handleResize)
+
+  onUnmounted(() => ro.disconnect())
 })
 
 onUnmounted(() => {

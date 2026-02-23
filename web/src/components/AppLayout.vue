@@ -5,6 +5,7 @@ import ThreadList from '@/components/ThreadList.vue'
 import MainModal from '@/components/MainModal.vue'
 import FloatingInput from '@/components/FloatingInput.vue'
 import SettingsModal from '@/components/SettingsModal.vue'
+import BottomActions from '@/components/BottomActions.vue'
 import { useExplorationStore } from '@/stores/exploration'
 import { useSettingsStore } from '@/stores/settings'
 import { computed, onMounted, onUnmounted } from 'vue'
@@ -18,22 +19,34 @@ function handleGlobalKeydown(e: KeyboardEvent) {
   const isEditable = tag === 'INPUT' || tag === 'TEXTAREA' || (document.activeElement as HTMLElement)?.isContentEditable
   if (isEditable) return
 
-  // Shift+Space to start a fresh new question (keeps saved data)
+  // Shift+Space — toggle new question modal
   if (e.key === ' ' && e.shiftKey && !e.ctrlKey && !e.metaKey) {
     e.preventDefault()
-    store.startNewQuestion()
+    if (store.viewMode === 'modal' && store.showNewQuestionView) {
+      store.cancelNewQuestion()
+    } else {
+      store.startNewQuestion()
+    }
   }
 
-  // Shift+H to show history modal
+  // Shift+H — toggle history modal
   if (e.key === 'H' && e.shiftKey && !e.ctrlKey && !e.metaKey) {
     e.preventDefault()
-    store.showHistoryModal()
+    if (store.viewMode === 'modal' && !store.showNewQuestionView) {
+      store.cancelNewQuestion()
+    } else {
+      store.showHistoryModal()
+    }
   }
 
-  // Shift+, to open settings (e.code is layout-independent)
+  // Shift+, — toggle settings
   if (e.code === 'Comma' && e.shiftKey && !e.ctrlKey && !e.metaKey) {
     e.preventDefault()
-    settingsStore.openSettings()
+    if (settingsStore.settingsOpen) {
+      settingsStore.closeSettings()
+    } else {
+      settingsStore.openSettings()
+    }
   }
 }
 
@@ -61,7 +74,7 @@ onUnmounted(() => window.removeEventListener('keydown', handleGlobalKeydown))
     <Transition name="slide-down">
       <div
         v-if="isAnchored"
-        class="absolute top-0 left-0 w-[30%] h-[30%] border-r border-b border-border z-0"
+        class="absolute top-0 left-0 w-[30%] h-[30%] border-r border-b border-border bg-card z-0"
       >
         <GraphView :root-node-id="store.activeRootNodeId" />
       </div>
@@ -71,7 +84,7 @@ onUnmounted(() => window.removeEventListener('keydown', handleGlobalKeydown))
     <Transition name="fade-slide">
       <div
         v-if="isAnchored"
-        class="absolute top-0 left-[30%] w-[50%] h-full border-r border-border z-0"
+        class="absolute top-0 left-[30%] w-[50%] h-full border-r border-border bg-card z-0"
       >
         <ExplanationPanel />
       </div>
@@ -81,7 +94,7 @@ onUnmounted(() => window.removeEventListener('keydown', handleGlobalKeydown))
     <Transition name="slide-right">
       <div
         v-if="isAnchored"
-        class="absolute top-0 right-0 h-full w-[20%] flex flex-col border-l border-border z-0"
+        class="absolute top-0 right-0 h-full w-[20%] flex flex-col border-l border-border bg-card z-0"
       >
         <ThreadList />
       </div>
@@ -112,6 +125,9 @@ onUnmounted(() => window.removeEventListener('keydown', handleGlobalKeydown))
 
     <!-- Settings modal -->
     <SettingsModal />
+
+    <!-- Floating bottom action buttons -->
+    <BottomActions />
   </div>
 </template>
 

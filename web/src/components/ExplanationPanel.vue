@@ -6,7 +6,7 @@ const store = useExplorationStore()
 </script>
 
 <template>
-  <div class="h-full flex flex-col">
+  <div class="h-full flex flex-col bg-card">
     <template v-if="store.selectedSubQuestion">
       <!-- Sub-question header -->
       <div class="px-6 py-4 border-b border-border shrink-0">

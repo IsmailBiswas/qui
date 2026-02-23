@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import { useExplorationStore } from '@/stores/exploration'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
@@ -9,6 +9,14 @@ import { askMainQuestion, askSubQuestion } from '@/services/ai'
 const store = useExplorationStore()
 const question = ref('')
 const loading = ref(false)
+const inputRef = ref<InstanceType<typeof Input> | null>(null)
+
+function focusInput() {
+  nextTick(() => {
+    const el = inputRef.value?.$el?.querySelector('input') ?? inputRef.value?.$el
+    el?.focus()
+  })
+}
 
 function handleEsc(e: KeyboardEvent) {
   if (e.key === 'Escape' && !loading.value) {
@@ -16,7 +24,10 @@ function handleEsc(e: KeyboardEvent) {
   }
 }
 
-onMounted(() => window.addEventListener('keydown', handleEsc))
+onMounted(() => {
+  window.addEventListener('keydown', handleEsc)
+  focusInput()
+})
 onUnmounted(() => window.removeEventListener('keydown', handleEsc))
 
 /** The root anchor created in this session */
@@ -24,6 +35,48 @@ const rootAnchorId = ref<string | null>(null)
 
 /** All Q&A pairs shown in this session */
 const conversation = ref<{ question: string; answer: string; isRoot: boolean }[]>([])
+
+// ── Explore strip animation ───────────────────────────────────────────────────
+// Phases:
+//   idle        → off-screen to the right (element stays in DOM)
+//   width       → slides in at thin height
+//   height      → expands from center to fill answer section
+//   ready       → "Explore this answer" text fades in
+type ExplorePhase = 'idle' | 'width' | 'height' | 'ready'
+const explorePhase = ref<ExplorePhase>('idle')
+/** Once the strip has fully appeared, it never hides again this session */
+const exploredOnce = ref(false)
+let exploreTimer: ReturnType<typeof setTimeout> | null = null
+
+function triggerExploreAnimation() {
+  // Never re-trigger once already shown
+  if (exploredOnce.value) return
+  if (explorePhase.value !== 'idle') return
+  exploreTimer = setTimeout(() => {
+    explorePhase.value = 'width'            // slide in from right
+    setTimeout(() => {
+      explorePhase.value = 'height'         // scaleY expand from center
+      setTimeout(() => {
+        explorePhase.value = 'ready'        // reveal text
+        exploredOnce.value = true           // lock — never hide again
+      }, 500)
+    }, 600)
+  }, 3000)
+}
+
+function resetExplore() {
+  // Cancel a pending timer only — don't hide the strip once it's visible
+  if (exploreTimer) { clearTimeout(exploreTimer); exploreTimer = null }
+  if (!exploredOnce.value) explorePhase.value = 'idle'
+}
+
+watch(loading, (val) => {
+  if (!val && conversation.value.length > 0 && !exploredOnce.value) {
+    triggerExploreAnimation()
+  }
+})
+
+// ─────────────────────────────────────────────────────────────────────────────
 
 function handleKeydown(e: KeyboardEvent) {
   if (e.key === 'Enter' && e.shiftKey) {
@@ -41,16 +94,16 @@ async function submit() {
 
   loading.value = true
   question.value = ''
+  // Only cancel a pending timer; never hide the strip once it's been shown
+  if (!exploredOnce.value) resetExplore()
 
   try {
     if (!rootAnchorId.value) {
-      // First question — create a new top-level anchor
       const answer = await askMainQuestion(q)
       const node = store.addAnchorNode(q, answer)
       rootAnchorId.value = node.id
       conversation.value.push({ question: q, answer, isRoot: true })
     } else {
-      // Follow-up — treat as sub-question, auto-promote to child anchor
       const rootNode = store.nodes.get(rootAnchorId.value)
       if (!rootNode) return
       const ancestors = store.getAncestorChain(rootNode.id)
@@ -70,7 +123,6 @@ async function submitAndExplore() {
   if (q && !loading.value) {
     await submit()
   }
-  // Transition to anchored view if we have an anchor
   if (store.activeNode) {
     store.transitionToAnchored()
   }
@@ -84,9 +136,14 @@ function explore() {
 </script>
 
 <template>
-  <div class="h-full w-full flex flex-col">
-    <!-- Content area -->
-    <ScrollArea class="flex-1 min-h-0">
+  <div class="h-full w-full flex flex-col overflow-hidden">
+    <!-- Answer section + strip share this parent so the strip height matches exactly -->
+    <div class="flex-1 min-h-0 relative flex">
+      <!-- Content area -->
+      <ScrollArea
+        class="flex-1 min-h-0 transition-[margin] duration-[550ms] ease-[cubic-bezier(0.4,0,0.2,1)]"
+        :class="explorePhase !== 'idle' ? 'mr-[8%]' : 'mr-0'"
+      >
       <!-- Before asking: empty state -->
       <div
         v-if="conversation.length === 0 && !loading"
@@ -126,24 +183,41 @@ function explore() {
         <div v-if="loading" class="border-t border-border pt-4">
           <p class="text-sm text-muted-foreground animate-pulse">Thinking...</p>
         </div>
-
-        <!-- Explore button -->
-        <div v-if="!loading && conversation.length > 0" class="pt-2">
-          <Button size="sm" class="text-xs" @click="explore">
-            Explore this answer
-          </Button>
-        </div>
       </div>
-    </ScrollArea>
+      </ScrollArea>
+
+      <!--
+        Explore strip — always in DOM so CSS transition works from the start.
+        Idle = off-screen right (translateX 100%). Phase classes slide + expand it.
+      -->
+      <div
+        class="explore-strip absolute right-0 top-0 h-full bg-yellow-400 flex items-center justify-center cursor-pointer overflow-hidden"
+        :class="{
+          'strip-idle':   explorePhase === 'idle',
+          'strip-width':  explorePhase === 'width',
+          'strip-height': explorePhase === 'height',
+          'strip-ready':  explorePhase === 'ready',
+        }"
+        @click="explore"
+      >
+        <span
+          class="select-none font-normal text-[32px] tracking-widest uppercase text-yellow-900 whitespace-nowrap"
+          :class="explorePhase === 'ready' ? 'opacity-100' : 'opacity-0'"
+          style="transform: rotate(90deg); transition: opacity 0.4s ease 0.15s"
+        >
+          Explore this answer
+        </span>
+      </div>
+    </div>
 
     <!-- Input bar at bottom -->
     <div class="shrink-0 border-t border-border px-4 py-3">
       <form class="flex gap-2" @submit.prevent="submit">
         <Input
+          ref="inputRef"
           v-model="question"
           :placeholder="loading ? 'Thinking...' : (conversation.length === 0 ? 'Ask a question...' : 'Ask a follow-up...')"
           :disabled="loading"
-          autofocus
           class="flex-1 h-8 text-sm"
           @keydown="handleKeydown"
         />
@@ -157,3 +231,45 @@ function explore() {
     </div>
   </div>
 </template>
+
+<style scoped>
+/* ── Explore strip states ─────────────────────────────────────────────────── */
+
+.explore-strip {
+  /*
+    Always in DOM. Default state = fully off-screen to the right, vertically tiny.
+    Both transitions defined here so they apply regardless of which class is active.
+    transform-origin: center → scaleY grows symmetrically top + bottom.
+  */
+  width: 8%;
+  pointer-events: none;
+  transform: translateX(100%) scaleY(0.04);
+  transform-origin: center;
+  transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Explicitly off-screen — pointer events off */
+.strip-idle {
+  transform: translateX(100%) scaleY(0.04);
+  pointer-events: none;
+}
+
+/* 1. Slide in from right, still thin */
+.strip-width {
+  transform: translateX(0%) scaleY(0.04);
+  pointer-events: none;
+}
+
+/* 2. Expand from center outward */
+.strip-height {
+  transform: translateX(0%) scaleY(1);
+  transition: transform 0.5s cubic-bezier(0.34, 1.15, 0.64, 1);
+  pointer-events: none;
+}
+
+/* 3. Ready — fully visible, clickable */
+.strip-ready {
+  transform: translateX(0%) scaleY(1);
+  pointer-events: auto;
+}
+</style>

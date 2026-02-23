@@ -37,7 +37,7 @@ onUnmounted(() => window.removeEventListener('keydown', handleKeydown))
       <div class="px-4 py-2 border-b border-border shrink-0">
         <p class="text-[10px] text-muted-foreground uppercase tracking-wide">Saved Questions</p>
       </div>
-      <ScrollArea class="flex-1">
+      <ScrollArea class="flex-1 min-h-0">
         <ModalQuestionItem
           v-for="node in rootNodes"
           :key="node.id"
@@ -50,7 +50,7 @@ onUnmounted(() => window.removeEventListener('keydown', handleKeydown))
     </div>
 
     <!-- Right: 3D graph preview -->
-    <div class="w-[45%] flex flex-col">
+    <div class="w-[45%] h-full flex flex-col min-h-0">
       <div class="px-4 py-2 border-b border-border shrink-0">
         <p class="text-[10px] text-muted-foreground uppercase tracking-wide">Graph Preview</p>
       </div>
