@@ -114,7 +114,10 @@
   * {
     @apply border-border outline-ring/50;
   }
+  html, body {
+    background: transparent;
+  }
   body {
-    @apply bg-background text-foreground;
+    @apply text-foreground;
   }
 }

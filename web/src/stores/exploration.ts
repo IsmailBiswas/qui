@@ -46,8 +46,9 @@ export const useExplorationStore = defineStore('exploration', () => {
   const viewMode = ref<'modal' | 'anchored'>(
     sessionView === 'anchored' && saved?.activeNodeId ? 'anchored' : 'modal'
   )
-  /** When true, MainModal shows the new-question input instead of history */
-  const showNewQuestionView = ref(false)
+  /** When true, MainModal shows the new-question input instead of history.
+   *  Initialized to true when there is no saved history (first-time user). */
+  const showNewQuestionView = ref(!saved || saved.nodes.length === 0)
   /** Tracks where the user was before pressing Shift+Space */
   const previousViewMode = ref<'modal' | 'anchored' | null>(null)
   const previousActiveNodeId = ref<string | null>(null)

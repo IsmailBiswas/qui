@@ -55,7 +55,7 @@ onUnmounted(() => window.removeEventListener('keydown', handleGlobalKeydown))
 </script>
 
 <template>
-  <div class="h-screen w-screen bg-background text-foreground overflow-hidden relative">
+  <div class="h-screen w-screen text-foreground overflow-hidden relative z-[1]">
     <!--
       Modal mode: centered 80% modal with Q&A + input.
       Anchored mode: 3-column layout.

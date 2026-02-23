@@ -61,7 +61,7 @@ function triggerExploreAnimation() {
         exploredOnce.value = true           // lock — never hide again
       }, 500)
     }, 600)
-  }, 3000)
+  }, 2000)
 }
 
 function resetExplore() {
@@ -149,12 +149,17 @@ function explore() {
         v-if="conversation.length === 0 && !loading"
         class="h-full flex flex-col items-center justify-center px-8 py-16 text-center"
       >
-        <h2 class="text-lg font-semibold text-foreground mb-2">Start Exploring</h2>
-        <p class="text-xs text-muted-foreground max-w-sm">
-          Type a question below and press
-          <kbd class="px-1 py-0.5 rounded bg-muted text-[10px] font-mono">Enter</kbd>
-          to ask.
-        </p>
+        <h2 class="text-lg font-semibold text-foreground mb-4">Start Exploring</h2>
+        <div class="flex flex-col gap-2 text-xs text-muted-foreground">
+          <div class="flex items-center gap-2">
+            <kbd class="px-1.5 py-0.5 rounded bg-muted font-mono text-[10px]">Enter</kbd>
+            <span>show answer here</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <kbd class="px-1.5 py-0.5 rounded bg-muted font-mono text-[10px]">Shift+Enter</kbd>
+            <span>open answer in main view</span>
+          </div>
+        </div>
       </div>
 
       <!-- Loading (first question) -->
@@ -223,11 +228,7 @@ function explore() {
         />
         <Button type="submit" size="sm" :disabled="loading">Ask</Button>
       </form>
-      <p class="text-[10px] text-muted-foreground mt-1.5 text-center">
-        <kbd class="px-1 py-0.5 rounded bg-muted font-mono">Enter</kbd> to ask
-        &middot;
-        <kbd class="px-1 py-0.5 rounded bg-muted font-mono">Shift+Enter</kbd> to ask and explore
-      </p>
+
     </div>
   </div>
 </template>
