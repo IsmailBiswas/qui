@@ -56,39 +56,63 @@ const sqMeshes: THREE.Mesh[] = []   // sub-question rectangles (not pickable)
 
 let animId = 0
 
-// ---- Layout helpers ----
-
-function computeDepth(node: AnchorNode, all: AnchorNode[]): number {
-  let depth = 0
-  let cur = node
-  while (cur.parentId) {
-    depth++
-    const parent = all.find((n) => n.id === cur.parentId)
-    if (!parent) break
-    cur = parent
-  }
-  return depth
-}
+// ---- 3D Hierarchical tree layout ----
 
 function computePositions(all: AnchorNode[]): Map<string, THREE.Vector3> {
   const map = new Map<string, THREE.Vector3>()
   if (all.length === 0) return map
 
-  const depthGroups = new Map<number, AnchorNode[]>()
-  for (const n of all) {
-    const d = computeDepth(n, all)
-    if (!depthGroups.has(d)) depthGroups.set(d, [])
-    depthGroups.get(d)!.push(n)
-  }
+  const Y_STEP     = -7      // vertical gap between levels
+  const BASE_CONE  = 7       // XZ spread radius for depth-1 children
+  const CONE_DECAY = 0.60    // each level narrows the spread
 
-  const yStep = -3.5
-  for (const [depth, group] of depthGroups) {
-    const xSpread = group.length > 1 ? (group.length - 1) * 4 : 0
-    for (let i = 0; i < group.length; i++) {
-      const x = -xSpread / 2 + i * 4
-      const y = depth * yStep
-      map.set(group[i].id, new THREE.Vector3(x, y, 0))
+  // Find roots (no parent or parent not in this subgraph)
+  const idSet  = new Set(all.map(n => n.id))
+  const roots  = all.filter(n => !n.parentId || !idSet.has(n.parentId))
+
+  // Place roots side-by-side on the top ring
+  roots.forEach((root, i) => {
+    const angle = (i / Math.max(roots.length, 1)) * Math.PI * 2
+    const r     = roots.length > 1 ? BASE_CONE : 0
+    map.set(root.id, new THREE.Vector3(
+      Math.cos(angle) * r,
+      0,
+      Math.sin(angle) * r,
+    ))
+  })
+
+  // BFS: place each child radially around its parent, spreading in XZ
+  const queue: AnchorNode[] = [...roots]
+  while (queue.length > 0) {
+    const parent = queue.shift()!
+    const parentPos = map.get(parent.id)
+    if (!parentPos) continue
+
+    const children = parent.childIds
+      .map(id => all.find(n => n.id === id))
+      .filter(Boolean) as AnchorNode[]
+
+    if (children.length === 0) continue
+
+    // Determine depth of parent to shrink cone radius
+    let depth = 0
+    let cur: AnchorNode | undefined = parent
+    while (cur?.parentId && idSet.has(cur.parentId)) {
+      depth++
+      cur = all.find(n => n.id === cur!.parentId)
     }
+    const coneR = BASE_CONE * Math.pow(CONE_DECAY, depth + 1)
+
+    // Spread children evenly around a circle in XZ, offset from parent
+    children.forEach((child, i) => {
+      const angle = (i / children.length) * Math.PI * 2 + (depth * 0.7)
+      map.set(child.id, new THREE.Vector3(
+        parentPos.x + Math.cos(angle) * coneR,
+        parentPos.y + Y_STEP,
+        parentPos.z + Math.sin(angle) * coneR,
+      ))
+      queue.push(child)
+    })
   }
 
   return map
@@ -269,7 +293,7 @@ function initScene() {
 
   // Camera
   const cam = new THREE.PerspectiveCamera(50, w / h, 0.1, 200)
-  cam.position.set(0, 2, 12)
+  cam.position.set(12, 12, 30)
   camera.value = cam
 
   // Renderer
