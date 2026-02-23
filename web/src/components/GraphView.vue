@@ -52,6 +52,7 @@ const pointer = new THREE.Vector2()
 const meshMap = new Map<string, THREE.Mesh>()
 const labelMap = new Map<string, THREE.Sprite>()
 const edgeLines: THREE.Line[] = []
+const sqMeshes: THREE.Mesh[] = []   // sub-question rectangles (not pickable)
 
 let animId = 0
 
@@ -73,7 +74,6 @@ function computePositions(all: AnchorNode[]): Map<string, THREE.Vector3> {
   const map = new Map<string, THREE.Vector3>()
   if (all.length === 0) return map
 
-  // Group by depth
   const depthGroups = new Map<number, AnchorNode[]>()
   for (const n of all) {
     const d = computeDepth(n, all)
@@ -81,60 +81,40 @@ function computePositions(all: AnchorNode[]): Map<string, THREE.Vector3> {
     depthGroups.get(d)!.push(n)
   }
 
-  const yStep = -3
+  const yStep = -3.5
   for (const [depth, group] of depthGroups) {
     const xSpread = group.length > 1 ? (group.length - 1) * 4 : 0
     for (let i = 0; i < group.length; i++) {
       const x = -xSpread / 2 + i * 4
       const y = depth * yStep
-      const z = 0
-      map.set(group[i].id, new THREE.Vector3(x, y, z))
+      map.set(group[i].id, new THREE.Vector3(x, y, 0))
     }
   }
 
   return map
 }
 
-// ---- Text sprite helper ----
+// ---- Anchor label sprite (text only for anchor/root nodes) ----
 
-function makeTextSprite(text: string, isActive: boolean): THREE.Sprite {
+function makeAnchorLabel(text: string, isActive: boolean): THREE.Sprite {
   const canvas = document.createElement('canvas')
   const ctx = canvas.getContext('2d')!
-  const fontSize = 36
+  const fontSize = 32
+  const display = text.length > 28 ? text.slice(0, 25) + '...' : text
   ctx.font = `${fontSize}px sans-serif`
+  const tw = ctx.measureText(display).width + 24
+  canvas.width  = Math.max(256, Math.ceil(tw))
+  canvas.height = fontSize + 24
 
-  // Truncate long text
-  const display = text.length > 30 ? text.slice(0, 27) + '...' : text
-  const metrics = ctx.measureText(display)
-  const textWidth = metrics.width + 24
-  const textHeight = fontSize + 20
-
-  canvas.width = Math.max(256, Math.ceil(textWidth))
-  canvas.height = Math.ceil(textHeight) + 10
-
-  // Solid background pill
-  const bgColor = isActive ? '#3b1f6e' : '#3f3f46'
-  ctx.fillStyle = bgColor
-  const r = 10
   const w = canvas.width, h = canvas.height
-  ctx.beginPath()
-  ctx.moveTo(r, 0)
-  ctx.lineTo(w - r, 0)
-  ctx.quadraticCurveTo(w, 0, w, r)
-  ctx.lineTo(w, h - r)
-  ctx.quadraticCurveTo(w, h, w - r, h)
-  ctx.lineTo(r, h)
-  ctx.quadraticCurveTo(0, h, 0, h - r)
-  ctx.lineTo(0, r)
-  ctx.quadraticCurveTo(0, 0, r, 0)
-  ctx.closePath()
-  ctx.fill()
+  ctx.fillStyle = isActive ? '#e4e4e7' : '#52525b'
+  ctx.fillRect(0, 0, w, h)
 
   ctx.font = `${fontSize}px sans-serif`
-  ctx.fillStyle = isActive ? 'rgba(255,255,255,0.95)' : 'rgba(200,200,200,0.90)'
+  ctx.fillStyle = isActive ? '#09090b' : '#d4d4d8'
   ctx.textAlign = 'center'
   ctx.textBaseline = 'middle'
-  ctx.fillText(display, canvas.width / 2, canvas.height / 2)
+  ctx.fillText(display, w / 2, h / 2)
 
   const tex = new THREE.CanvasTexture(canvas)
   tex.minFilter = THREE.LinearFilter
@@ -150,53 +130,104 @@ function rebuildScene() {
   if (!scene.value) return
   const s = scene.value
 
-  // Clear old
   for (const m of meshMap.values()) s.remove(m)
   for (const l of labelMap.values()) s.remove(l)
   for (const e of edgeLines) s.remove(e)
+  for (const m of sqMeshes) s.remove(m)
   meshMap.clear()
   labelMap.clear()
   edgeLines.length = 0
+  sqMeshes.length = 0
 
   const all = nodes.value
   if (all.length === 0) return
 
-  const positions = computePositions(all)
+  // Position every anchor node as a disk
+  const anchorPositions = computePositions(all)
 
-  // Create node spheres + labels
+  const lineMat      = new THREE.LineBasicMaterial({ color: 0x71717a })
+  const subLineMat   = new THREE.LineBasicMaterial({ color: 0x52525b })
+
+  // ── Anchor disks ──────────────────────────────────────────────────────────
   for (const node of all) {
-    const pos = positions.get(node.id)
+    const pos     = anchorPositions.get(node.id)
     if (!pos) continue
 
     const isActive = node.id === activeId.value
-    const geo = new THREE.SphereGeometry(0.5, 24, 24)
+
+    // Flat disk (cylinder with thin height, rotated to face camera)
+    const geo = new THREE.CylinderGeometry(0.7, 0.7, 0.12, 48)
     const mat = new THREE.MeshStandardMaterial({
-      color: isActive ? 0x7c3aed : 0x3f3f46,
-      roughness: 0.6,
-      metalness: 0.2,
+      color:     isActive ? 0xffffff : 0x999999,
+      roughness: 0.3,
+      metalness: 0.4,
     })
     const mesh = new THREE.Mesh(geo, mat)
     mesh.position.copy(pos)
+    mesh.rotation.x = Math.PI / 2   // face the camera
     mesh.userData.nodeId = node.id
     s.add(mesh)
     meshMap.set(node.id, mesh)
 
-    // Label
-    const label = makeTextSprite(node.question, isActive)
-    label.position.set(pos.x, pos.y + 1, pos.z)
+    // Label above the disk — also pickable
+    const label = makeAnchorLabel(node.question, isActive)
+    label.position.set(pos.x, pos.y + 1.2, pos.z)
+    label.userData.nodeId = node.id
     s.add(label)
     labelMap.set(node.id, label)
+
+    // ── Single subdivided rectangle for all sub-questions ──────────────────
+    const sqs = node.subQuestions ?? []
+    if (sqs.length > 0) {
+      const BASE_H    = 0.8      // height of rectangle for 1 sub-question
+      const GAP       = 0.08     // gap between cells
+      const SQ_W      = 1.2
+      const SQ_D      = 0.1
+      const SQ_OFFSET = 2.4
+
+      // Max out at double height; N cells divide that space (minus gaps) equally
+      const totalH  = sqs.length === 1 ? BASE_H : BASE_H * 2
+      const cellH   = (totalH - GAP * (sqs.length - 1)) / sqs.length
+      const sqCenter = new THREE.Vector3(pos.x + SQ_OFFSET, pos.y, pos.z)
+
+      // Draw N separate cell boxes with gaps between them
+      const sqMat = new THREE.MeshStandardMaterial({
+        color:     0x505050,
+        roughness: 0.6,
+        metalness: 0.1,
+      })
+      for (let i = 0; i < sqs.length; i++) {
+        const cellCentreY = sqCenter.y + totalH / 2 - cellH / 2 - i * (cellH + GAP)
+        const cellGeo  = new THREE.BoxGeometry(SQ_W, cellH, SQ_D)
+        const cellMesh = new THREE.Mesh(cellGeo, sqMat)
+        cellMesh.position.set(sqCenter.x, cellCentreY, sqCenter.z)
+        s.add(cellMesh)
+        sqMeshes.push(cellMesh)
+      }
+
+      // N connectors — one per cell, from disk edge → cell centre-left
+      const rectLeft  = sqCenter.x - SQ_W / 2
+      const diskRight = pos.x + 0.7
+      for (let i = 0; i < sqs.length; i++) {
+        const cellCentreY = sqCenter.y + totalH / 2 - cellH / 2 - i * (cellH + GAP)
+        const connGeo  = new THREE.BufferGeometry().setFromPoints([
+          new THREE.Vector3(diskRight, pos.y, pos.z),
+          new THREE.Vector3(rectLeft, cellCentreY, pos.z),
+        ])
+        const connLine = new THREE.Line(connGeo, subLineMat)
+        s.add(connLine)
+        edgeLines.push(connLine)
+      }
+    }
   }
 
-  // Create edges
-  const lineMat = new THREE.LineBasicMaterial({ color: 0x52525b })
+  // ── Anchor-to-anchor edges (tree) ─────────────────────────────────────────
   for (const node of all) {
     if (!node.parentId) continue
-    const from = positions.get(node.parentId)
-    const to = positions.get(node.id)
+    const from = anchorPositions.get(node.parentId)
+    const to   = anchorPositions.get(node.id)
     if (!from || !to) continue
-
-    const geo = new THREE.BufferGeometry().setFromPoints([from, to])
+    const geo  = new THREE.BufferGeometry().setFromPoints([from, to])
     const line = new THREE.Line(geo, lineMat)
     s.add(line)
     edgeLines.push(line)
@@ -212,8 +243,11 @@ function onClick(e: MouseEvent) {
   pointer.y = -((e.clientY - rect.top) / rect.height) * 2 + 1
 
   raycaster.setFromCamera(pointer, camera.value)
-  const meshes = Array.from(meshMap.values())
-  const hits = raycaster.intersectObjects(meshes, false)
+  const pickable = [
+    ...Array.from(meshMap.values()),
+    ...Array.from(labelMap.values()),
+  ]
+  const hits = raycaster.intersectObjects(pickable, false)
   if (hits.length > 0) {
     const nodeId = hits[0].object.userData.nodeId as string
     if (nodeId) store.selectNode(nodeId)
@@ -230,7 +264,7 @@ function initScene() {
 
   // Scene
   const s = new THREE.Scene()
-  s.background = new THREE.Color(0x27272a)
+  s.background = new THREE.Color(0x18181b)
   scene.value = s
 
   // Camera

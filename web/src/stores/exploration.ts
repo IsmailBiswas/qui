@@ -160,7 +160,10 @@ export const useExplorationStore = defineStore('exploration', () => {
     const sub = node.subQuestions.find((s) => s.id === subId)
     if (!sub || !sub.answer) return null
 
-    return addAnchorNode(sub.question, sub.answer, anchorId)
+    const newNode = addAnchorNode(sub.question, sub.answer, anchorId)
+    // Remove the promoted sub-question from the list so it's not shown twice
+    node.subQuestions = node.subQuestions.filter((s) => s.id !== subId)
+    return newNode
   }
 
   /**
