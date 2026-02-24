@@ -21,8 +21,8 @@ function draw(canvas: HTMLCanvasElement) {
   ctx.fillStyle = BG_FILL
   ctx.fillRect(0, 0, w, h)
 
-  for (let y = CIRCLE_SPACING; y < h; y += CIRCLE_SPACING) {
-    for (let x = CIRCLE_SPACING; x < w; x += CIRCLE_SPACING) {
+  for (let y = -CIRCLE_SPACING; y < h + CIRCLE_SPACING; y += CIRCLE_SPACING) {
+    for (let x = -CIRCLE_SPACING; x < w + CIRCLE_SPACING; x += CIRCLE_SPACING) {
       const ox = (Math.random() - 0.5) * RANDOM_OFFSET
       const oy = (Math.random() - 0.5) * RANDOM_OFFSET
       ctx.beginPath()
@@ -38,13 +38,13 @@ function draw(canvas: HTMLCanvasElement) {
 
 onMounted(() => {
   const canvas = canvasRef.value!
-  canvas.width  = window.innerWidth
-  canvas.height = window.innerHeight
+  canvas.width  = window.innerWidth  + CIRCLE_SPACING * 2
+  canvas.height = window.innerHeight + CIRCLE_SPACING * 2
   draw(canvas)
 
   resizeObserver = new ResizeObserver(() => {
-    canvas.width  = window.innerWidth
-    canvas.height = window.innerHeight
+    canvas.width  = window.innerWidth  + CIRCLE_SPACING * 2
+    canvas.height = window.innerHeight + CIRCLE_SPACING * 2
     draw(canvas)
   })
   resizeObserver.observe(document.documentElement)
@@ -56,5 +56,5 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <canvas ref="canvasRef" class="fixed inset-0 z-0 block" />
+  <canvas ref="canvasRef" class="fixed z-0 block" style="top: -5px; left: -5px;" />
 </template>

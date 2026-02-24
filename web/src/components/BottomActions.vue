@@ -13,12 +13,13 @@ const shortcuts = [
 </script>
 
 <template>
-  <!-- Round ? button -->
+  <!-- Arc button in bottom-right corner -->
   <button
-    class="fixed bottom-5 left-1/2 -translate-x-1/2 z-40 h-9 w-9 rounded-full bg-white text-zinc-700 shadow-lg border border-zinc-200 flex items-center justify-center text-sm font-medium hover:bg-zinc-50 transition-colors"
+    class="fixed bottom-0 right-0 z-40 w-20 h-20 bg-zinc-600 border-t border-l border-zinc-500 flex items-center justify-center text-sm font-medium text-zinc-200 hover:text-white hover:bg-zinc-500 transition-colors"
+    style="border-top-left-radius: 100%;"
     @click="open = !open"
   >
-    ?
+    <span class="translate-x-2 translate-y-2 select-none">?</span>
   </button>
 
   <!-- Centered shortcuts modal -->

@@ -20,6 +20,10 @@ function exploreQuestion(nodeId: string) {
   nextTick(() => store.transitionToAnchored())
 }
 
+function deleteQuestion(nodeId: string) {
+  store.deleteNode(nodeId)
+}
+
 function handleKeydown(e: KeyboardEvent) {
   if (e.key === 'Escape' && store.previousViewMode === 'anchored') {
     store.cancelNewQuestion()
@@ -46,6 +50,7 @@ onUnmounted(() => window.removeEventListener('keydown', handleKeydown))
             :is-active="store.activeNodeId === node.id"
             @select="selectQuestion(node.id)"
             @explore="exploreQuestion(node.id)"
+            @delete="deleteQuestion(node.id)"
           />
         </div>
       </ScrollArea>

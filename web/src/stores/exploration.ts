@@ -257,6 +257,48 @@ export const useExplorationStore = defineStore('exploration', () => {
     previousSelectedSubQuestionId.value = null
   }
 
+  function deleteSubQuestion(anchorId: string, subId: string) {
+    const node = nodes.value.get(anchorId)
+    if (!node) return
+    node.subQuestions = node.subQuestions.filter((s) => s.id !== subId)
+    if (selectedSubQuestionId.value === subId) selectedSubQuestionId.value = null
+    saveToStorage({
+      nodes: Array.from(nodes.value.entries()),
+      activeNodeId: activeNodeId.value,
+      selectedSubQuestionId: selectedSubQuestionId.value,
+      viewMode: viewMode.value,
+    })
+  }
+
+  function deleteNode(nodeId: string) {
+    // Recursively collect node + all descendants
+    const toDelete: string[] = []
+    const collect = (id: string) => {
+      toDelete.push(id)
+      const n = nodes.value.get(id)
+      if (n) n.childIds.forEach(collect)
+    }
+    collect(nodeId)
+    // Remove from parent's childIds
+    const node = nodes.value.get(nodeId)
+    if (node?.parentId) {
+      const parent = nodes.value.get(node.parentId)
+      if (parent) parent.childIds = parent.childIds.filter((id) => id !== nodeId)
+    }
+    toDelete.forEach((id) => nodes.value.delete(id))
+    if (toDelete.includes(activeNodeId.value ?? '')) {
+      activeNodeId.value = null
+      selectedSubQuestionId.value = null
+    }
+    // Force-persist immediately — Map.delete() may not reliably trigger the watcher
+    saveToStorage({
+      nodes: Array.from(nodes.value.entries()),
+      activeNodeId: activeNodeId.value,
+      selectedSubQuestionId: selectedSubQuestionId.value,
+      viewMode: viewMode.value,
+    })
+  }
+
   function reset() {
     nodes.value.clear()
     activeNodeId.value = null
@@ -317,6 +359,8 @@ export const useExplorationStore = defineStore('exploration', () => {
     showHistoryModal,
     startNewQuestion,
     cancelNewQuestion,
+    deleteNode,
+    deleteSubQuestion,
     reset,
   }
 })
