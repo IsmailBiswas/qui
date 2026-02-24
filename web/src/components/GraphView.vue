@@ -62,8 +62,8 @@ function computePositions(all: AnchorNode[]): Map<string, THREE.Vector3> {
   const map = new Map<string, THREE.Vector3>()
   if (all.length === 0) return map
 
-  const Y_STEP     = -7      // vertical gap between levels
-  const BASE_CONE  = 7       // XZ spread radius for depth-1 children
+  const Y_STEP     = -4      // vertical gap between levels
+  const BASE_CONE  = 9       // XZ spread radius for depth-1 children
   const CONE_DECAY = 0.60    // each level narrows the spread
 
   // Find roots (no parent or parent not in this subgraph)
@@ -293,7 +293,7 @@ function initScene() {
 
   // Camera
   const cam = new THREE.PerspectiveCamera(50, w / h, 0.1, 200)
-  cam.position.set(12, 12, 30)
+  cam.position.set(4, 2, 22)
   camera.value = cam
 
   // Renderer

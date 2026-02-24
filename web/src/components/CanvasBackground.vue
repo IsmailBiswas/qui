@@ -29,7 +29,7 @@ function draw(canvas: HTMLCanvasElement) {
       ctx.arc(x + ox, y + oy, CIRCLE_RADIUS, 0, Math.PI * 2)
       ctx.fillStyle = CIRCLE_FILL
       ctx.fill()
-      ctx.strokeStyle = `rgba(110,110,255,${CIRCLE_STROKE_OPACITY})`
+      ctx.strokeStyle = `rgba(255,255,255,${CIRCLE_STROKE_OPACITY})`
       ctx.lineWidth = CIRCLE_STROKE_WIDTH
       ctx.stroke()
     }
