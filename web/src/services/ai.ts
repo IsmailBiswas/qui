@@ -111,7 +111,7 @@ export function streamSubQuestion(
   return chatStream([
     {
       role:    'system',
-      content: 'You are a helpful learning assistant. The user is studying a topic and has a follow-up question. Answer using only the provided context chain. Be concise and focused.',
+      content: 'You are a helpful learning assistant. The user is studying a topic and has a follow-up question. Asnwer them pragmatically.',
     },
     {
       role:    'user',
