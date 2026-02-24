@@ -3,7 +3,7 @@ import { ref, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import { useExplorationStore } from '@/stores/exploration'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
-import { askMainQuestion, askSubQuestion } from '@/services/ai'
+import { streamMainQuestion, streamSubQuestion } from '@/services/ai'
 
 const store = useExplorationStore()
 
@@ -98,24 +98,29 @@ async function submit() {
 
   loading.value = true
   question.value = ''
+  visible.value = false
 
   try {
     if (!store.activeNode) {
-      const answer = await askMainQuestion(q)
-      store.addAnchorNode(q, answer)
+      const node = store.addAnchorNode(q, '')
+      for await (const chunk of streamMainQuestion(q)) {
+        store.appendNodeAnswer(node.id, chunk)
+      }
+      store.finishNodeAnswer(node.id)
     } else {
-      const sub = store.addSubQuestion(store.activeNode.id, q)
-      const ancestors = store.getAncestorChain(store.activeNode.id)
-      const answer = await askSubQuestion(ancestors, q)
-      store.updateSubQuestionAnswer(sub.anchorId, sub.id, answer)
+      const anchorId = store.activeNode.id
+      const sub = store.addSubQuestion(anchorId, q)
+      const ancestors = store.getAncestorChain(anchorId)
+      for await (const chunk of streamSubQuestion(ancestors, q)) {
+        store.appendSubQuestionAnswer(sub.anchorId, sub.id, chunk)
+      }
+      store.finishSubQuestionAnswer(sub.anchorId, sub.id)
     }
   } catch (err) {
     console.error('AI request failed:', err)
   } finally {
     loading.value = false
   }
-
-  visible.value = false
 }
 </script>
 

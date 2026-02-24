@@ -14,7 +14,7 @@ const emit = defineEmits<{
 
 <template>
   <div
-    class="flex border-b border-border transition-colors cursor-pointer"
+    class="flex border-b border-l border-border transition-colors cursor-pointer"
     :class="isActive ? 'bg-muted' : 'hover:bg-muted/50'"
     @click="emit('select')"
   >
@@ -29,7 +29,7 @@ const emit = defineEmits<{
 
     <!-- Full-height explore button -->
     <button
-      class="w-10 shrink-0 flex items-center justify-center border-l border-border hover:bg-primary/10 hover:text-primary transition-colors"
+      class="w-10 shrink-0 flex items-center justify-center border-l border-r border-border hover:bg-primary/10 hover:text-primary transition-colors"
       title="Explore"
       @click.stop="emit('explore')"
     >

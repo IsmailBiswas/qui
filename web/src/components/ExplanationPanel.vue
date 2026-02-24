@@ -17,10 +17,13 @@ const store = useExplorationStore()
       <!-- Sub-question answer body -->
       <ScrollArea class="flex-1">
         <div class="px-6 py-4">
-          <div v-if="store.selectedSubQuestion.loading" class="text-sm text-muted-foreground animate-pulse">
+          <div
+            v-if="store.selectedSubQuestion.loading && !store.selectedSubQuestion.answer"
+            class="text-sm text-muted-foreground animate-pulse"
+          >
             Thinking...
           </div>
-          <p v-else class="text-sm leading-relaxed whitespace-pre-wrap">{{ store.selectedSubQuestion.answer }}</p>
+          <p class="text-sm leading-relaxed whitespace-pre-wrap">{{ store.selectedSubQuestion.answer }}</p>
         </div>
       </ScrollArea>
     </template>

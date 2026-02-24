@@ -115,6 +115,10 @@ onUnmounted(() => window.removeEventListener('keydown', handleGlobalKeydown))
           <p v-if="store.activeNode" class="text-sm font-medium">{{ store.activeNode.question }}</p>
         </div>
         <div v-if="store.activeNode" class="px-4 py-3 flex-1 overflow-auto">
+          <p
+            v-if="store.activeNode.loading && !store.activeNode.answer"
+            class="text-xs text-muted-foreground animate-pulse"
+          >Thinking...</p>
           <p class="text-xs leading-relaxed whitespace-pre-wrap text-muted-foreground">{{ store.activeNode.answer }}</p>
         </div>
       </div>

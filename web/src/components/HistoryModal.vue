@@ -38,14 +38,16 @@ onUnmounted(() => window.removeEventListener('keydown', handleKeydown))
         <p class="text-[10px] text-muted-foreground uppercase tracking-wide">Saved Questions</p>
       </div>
       <ScrollArea class="flex-1 min-h-0">
-        <ModalQuestionItem
-          v-for="node in rootNodes"
-          :key="node.id"
-          :node="node"
-          :is-active="store.activeNodeId === node.id"
-          @select="selectQuestion(node.id)"
-          @explore="exploreQuestion(node.id)"
-        />
+        <div class="px-[11px]">
+          <ModalQuestionItem
+            v-for="node in rootNodes"
+            :key="node.id"
+            :node="node"
+            :is-active="store.activeNodeId === node.id"
+            @select="selectQuestion(node.id)"
+            @explore="exploreQuestion(node.id)"
+          />
+        </div>
       </ScrollArea>
     </div>
 

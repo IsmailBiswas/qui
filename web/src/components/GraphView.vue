@@ -293,7 +293,7 @@ function initScene() {
 
   // Camera
   const cam = new THREE.PerspectiveCamera(50, w / h, 0.1, 200)
-  cam.position.set(4, 2, 22)
+  cam.position.set(4, 2, 13)
   camera.value = cam
 
   // Renderer

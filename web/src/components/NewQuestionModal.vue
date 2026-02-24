@@ -4,7 +4,7 @@ import { useExplorationStore } from '@/stores/exploration'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import { askMainQuestion, askSubQuestion } from '@/services/ai'
+import { streamMainQuestion, streamSubQuestion } from '@/services/ai'
 
 const store = useExplorationStore()
 const question = ref('')
@@ -97,19 +97,28 @@ async function submit() {
   // Only cancel a pending timer; never hide the strip once it's been shown
   if (!exploredOnce.value) resetExplore()
 
+  // Push placeholder entry immediately so the question appears in the UI
+  conversation.value.push({ question: q, answer: '', isRoot: !rootAnchorId.value })
+  const idx = conversation.value.length - 1
+
   try {
     if (!rootAnchorId.value) {
-      const answer = await askMainQuestion(q)
-      const node = store.addAnchorNode(q, answer)
+      const node = store.addAnchorNode(q, '')
       rootAnchorId.value = node.id
-      conversation.value.push({ question: q, answer, isRoot: true })
+      for await (const chunk of streamMainQuestion(q)) {
+        conversation.value[idx].answer += chunk
+        store.appendNodeAnswer(node.id, chunk)
+      }
+      store.finishNodeAnswer(node.id)
     } else {
-      const rootNode = store.nodes.get(rootAnchorId.value)
-      if (!rootNode) return
-      const ancestors = store.getAncestorChain(rootNode.id)
-      const answer = await askSubQuestion(ancestors, q)
-      store.addAnchorNode(q, answer, rootAnchorId.value)
-      conversation.value.push({ question: q, answer, isRoot: false })
+      const parentId = store.activeNodeId ?? rootAnchorId.value
+      const ancestors = store.getAncestorChain(parentId)
+      const node = store.addAnchorNode(q, '', parentId)
+      for await (const chunk of streamSubQuestion(ancestors, q)) {
+        conversation.value[idx].answer += chunk
+        store.appendNodeAnswer(node.id, chunk)
+      }
+      store.finishNodeAnswer(node.id)
     }
   } catch (err) {
     console.error('AI request failed:', err)
@@ -162,14 +171,6 @@ function explore() {
         </div>
       </div>
 
-      <!-- Loading (first question) -->
-      <div
-        v-else-if="loading && conversation.length === 0"
-        class="h-full flex items-center justify-center px-8 py-16"
-      >
-        <p class="text-sm text-muted-foreground animate-pulse">Thinking...</p>
-      </div>
-
       <!-- Conversation thread -->
       <div v-else class="px-6 py-5 space-y-4">
         <div
@@ -182,11 +183,6 @@ function explore() {
           </p>
           <p class="text-sm font-medium mb-2">{{ entry.question }}</p>
           <p class="text-sm leading-relaxed whitespace-pre-wrap">{{ entry.answer }}</p>
-        </div>
-
-        <!-- Loading indicator for follow-up -->
-        <div v-if="loading" class="border-t border-border pt-4">
-          <p class="text-sm text-muted-foreground animate-pulse">Thinking...</p>
         </div>
       </div>
       </ScrollArea>

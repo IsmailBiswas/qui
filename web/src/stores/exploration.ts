@@ -111,6 +111,7 @@ export const useExplorationStore = defineStore('exploration', () => {
       id,
       question,
       answer,
+      loading: answer === '',
       parentId,
       childIds: [],
       subQuestions: [],
@@ -153,6 +154,32 @@ export const useExplorationStore = defineStore('exploration', () => {
       sub.loading = false
     }
   }
+
+  // ── Streaming helpers ──────────────────────────────────────────────────────
+
+  function appendNodeAnswer(nodeId: string, chunk: string) {
+    const node = nodes.value.get(nodeId)
+    if (node) node.answer += chunk
+  }
+
+  function appendSubQuestionAnswer(anchorId: string, subId: string, chunk: string) {
+    const node = nodes.value.get(anchorId)
+    const sub = node?.subQuestions.find((s) => s.id === subId)
+    if (sub) sub.answer += chunk
+  }
+
+  function finishNodeAnswer(nodeId: string) {
+    const node = nodes.value.get(nodeId)
+    if (node) node.loading = false
+  }
+
+  function finishSubQuestionAnswer(anchorId: string, subId: string) {
+    const node = nodes.value.get(anchorId)
+    const sub = node?.subQuestions.find((s) => s.id === subId)
+    if (sub) sub.loading = false
+  }
+
+  // ──────────────────────────────────────────────────────────────────────────
 
   function promoteSubQuestion(anchorId: string, subId: string): AnchorNode | null {
     const node = nodes.value.get(anchorId)
@@ -277,6 +304,10 @@ export const useExplorationStore = defineStore('exploration', () => {
     hideInput,
     addAnchorNode,
     addSubQuestion,
+    appendNodeAnswer,
+    appendSubQuestionAnswer,
+    finishNodeAnswer,
+    finishSubQuestionAnswer,
     updateSubQuestionAnswer,
     promoteSubQuestion,
     selectNode,
