@@ -107,7 +107,7 @@ async function submit() {
       const node = store.addAnchorNode(q, '')
       rootAnchorId.value = node.id
       for await (const chunk of streamMainQuestion(q)) {
-        conversation.value[idx].answer += chunk
+        conversation.value[idx]!.answer += chunk
         store.appendNodeAnswer(node.id, chunk)
       }
       store.finishNodeAnswer(node.id)
@@ -116,7 +116,7 @@ async function submit() {
       const ancestors = store.getAncestorChain(parentId)
       const node = store.addAnchorNode(q, '', parentId)
       for await (const chunk of streamSubQuestion(ancestors, q)) {
-        conversation.value[idx].answer += chunk
+        conversation.value[idx]!.answer += chunk
         store.appendNodeAnswer(node.id, chunk)
       }
       store.finishNodeAnswer(node.id)
