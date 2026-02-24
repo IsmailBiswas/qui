@@ -53,6 +53,8 @@ export const useExplorationStore = defineStore('exploration', () => {
   const previousViewMode = ref<'modal' | 'anchored' | null>(null)
   const previousActiveNodeId = ref<string | null>(null)
   const previousSelectedSubQuestionId = ref<string | null>(null)
+  /** Whether the 3D graph view is expanded to fill the window */
+  const graphExpanded = ref(false)
 
   const activeNode = computed(() => {
     if (!activeNodeId.value) return null
@@ -337,6 +339,7 @@ export const useExplorationStore = defineStore('exploration', () => {
     viewMode,
     showNewQuestionView,
     previousViewMode,
+    graphExpanded,
     activeNode,
     rootNode,
     allNodes,

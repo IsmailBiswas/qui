@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { useExplorationStore } from '@/stores/exploration'
 import { ScrollArea } from '@/components/ui/scroll-area'
+import MarkdownContent from '@/components/MarkdownContent.vue'
 
 const store = useExplorationStore()
 </script>
@@ -23,7 +24,7 @@ const store = useExplorationStore()
           >
             Thinking...
           </div>
-          <p class="text-sm leading-relaxed whitespace-pre-wrap">{{ store.selectedSubQuestion.answer }}</p>
+          <MarkdownContent :content="store.selectedSubQuestion.answer" />
         </div>
       </ScrollArea>
     </template>

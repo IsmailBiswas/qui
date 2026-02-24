@@ -6,6 +6,7 @@ import MainModal from '@/components/MainModal.vue'
 import FloatingInput from '@/components/FloatingInput.vue'
 import SettingsModal from '@/components/SettingsModal.vue'
 import BottomActions from '@/components/BottomActions.vue'
+import MarkdownContent from '@/components/MarkdownContent.vue'
 import { useExplorationStore } from '@/stores/exploration'
 import { useSettingsStore } from '@/stores/settings'
 import { computed, onMounted, onUnmounted } from 'vue'
@@ -14,10 +15,26 @@ const store = useExplorationStore()
 const settingsStore = useSettingsStore()
 const isAnchored = computed(() => store.viewMode === 'anchored')
 
+function onNodeSelected() {
+  store.graphExpanded = false
+}
+
 function handleGlobalKeydown(e: KeyboardEvent) {
   const tag = (document.activeElement as HTMLElement)?.tagName
   const isEditable = tag === 'INPUT' || tag === 'TEXTAREA' || (document.activeElement as HTMLElement)?.isContentEditable
   if (isEditable) return
+
+  // Shift+V — toggle 3D graph full-window view
+  if (e.key === 'V' && e.shiftKey && !e.ctrlKey && !e.metaKey && isAnchored.value) {
+    e.preventDefault()
+    store.graphExpanded = !store.graphExpanded
+  }
+
+  // Escape — collapse 3D graph if expanded
+  if (e.key === 'Escape' && store.graphExpanded) {
+    store.graphExpanded = false
+    return
+  }
 
   // Shift+Space — toggle new question modal
   if (e.key === ' ' && e.shiftKey && !e.ctrlKey && !e.metaKey) {
@@ -66,17 +83,25 @@ onUnmounted(() => window.removeEventListener('keydown', handleGlobalKeydown))
     <Transition name="fade">
       <div
         v-if="!isAnchored"
-        class="absolute inset-0 bg-black/60 z-10"
+        class="absolute inset-0 bg-black/0 z-10"
       />
     </Transition>
 
-    <!-- Graph View: top-left 20% height (slides down from top) -->
+    <!-- Graph View: top-left 30% (expands to full screen when graphExpanded) -->
     <Transition name="slide-down">
       <div
         v-if="isAnchored"
-        class="absolute top-0 left-0 w-[30%] h-[30%] border-r border-b border-border bg-card z-0"
+        class="absolute border-border bg-card transition-all duration-200 ease-in-out"
+        :class="store.graphExpanded
+          ? 'top-0 left-0 w-full h-full z-[60] border-0'
+          : 'top-0 left-0 w-[30%] h-[30%] border-r border-b z-[30]'"
       >
-        <GraphView :root-node-id="store.activeRootNodeId" />
+        <GraphView
+          :root-node-id="store.activeRootNodeId"
+          :expanded="store.graphExpanded"
+          @toggle-expand="store.graphExpanded = !store.graphExpanded"
+          @node-selected="onNodeSelected"
+        />
       </div>
     </Transition>
 
@@ -119,7 +144,7 @@ onUnmounted(() => window.removeEventListener('keydown', handleGlobalKeydown))
             v-if="store.activeNode.loading && !store.activeNode.answer"
             class="text-xs text-muted-foreground animate-pulse"
           >Thinking...</p>
-          <p class="text-xs leading-relaxed whitespace-pre-wrap text-muted-foreground">{{ store.activeNode.answer }}</p>
+          <MarkdownContent :content="store.activeNode.answer" />
         </div>
       </div>
     </div>

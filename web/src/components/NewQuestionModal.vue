@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { streamMainQuestion, streamSubQuestion } from '@/services/ai'
+import MarkdownContent from '@/components/MarkdownContent.vue'
 
 const store = useExplorationStore()
 const question = ref('')
@@ -182,7 +183,7 @@ function explore() {
             {{ entry.isRoot ? 'Question' : 'Follow-up' }}
           </p>
           <p class="text-sm font-medium mb-2">{{ entry.question }}</p>
-          <p class="text-sm leading-relaxed whitespace-pre-wrap">{{ entry.answer }}</p>
+          <MarkdownContent :content="entry.answer" />
         </div>
       </div>
       </ScrollArea>

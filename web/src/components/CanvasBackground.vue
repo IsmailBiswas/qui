@@ -3,11 +3,11 @@ import { onMounted, onUnmounted, ref } from 'vue'
 
 const canvasRef = ref<HTMLCanvasElement | null>(null)
 
-const CIRCLE_RADIUS       = 1
+const CIRCLE_RADIUS       = 0.5
 const CIRCLE_SPACING      = 5
 const RANDOM_OFFSET       = 0
-const CIRCLE_STROKE_WIDTH = 2
-const CIRCLE_STROKE_OPACITY = 0.22
+const CIRCLE_STROKE_WIDTH = 1
+const CIRCLE_STROKE_OPACITY = 0.42
 
 const BG_FILL     = '#444'
 const CIRCLE_FILL = '#bbb'

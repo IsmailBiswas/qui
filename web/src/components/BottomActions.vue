@@ -30,7 +30,7 @@ const shortcuts = [
         class="fixed inset-0 z-50 flex items-center justify-center pb-64"
       >
         <!-- Backdrop -->
-        <div class="absolute inset-0 bg-black/60" @click="open = false" />
+        <div class="absolute inset-0 bg-black/0" @click="open = false" />
 
         <!-- Panel — same 80% width as history modal -->
         <div class="relative w-[80%] rounded-lg border border-border bg-card shadow-2xl px-8 py-6">
